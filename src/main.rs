@@ -7,6 +7,63 @@ use graphics::*;
 use piston::*;
 use std::rand::random;
 
+mod straight_line;
+mod stand_still;
+
+pub struct Pos {
+    x: f64,
+    y: f64,
+}
+
+pub struct Line {
+    a: Pos,
+    b: Pos,
+}
+
+/// A wrapper type for all the kinds of motion.
+pub enum Motion {
+    StandStillMotion(stand_still::Motion),
+    StraightLineMotion(straight_line::Motion),
+}
+
+impl Motion {
+    fn next(&self, dt: f64) -> Option<Motion> {
+        match *self {
+            StandStillMotion(move) => match move.next(dt) {
+                None => None,
+                Some(move) => Some(StandStillMotion(move)),
+            },
+            StraightLineMotion(move) => match move.next(dt) {
+                None => None,
+                Some(move) => Some(StraightLineMotion(move)),
+            },
+        }
+    }
+}
+
+
+pub struct StandStillMotion {
+    pos: Pos,
+}
+
+pub enum Behavior {
+    StandStillBehavior(stand_still::Behavior),
+    StraightLineBehavior(straight_line::Behavior),
+}
+
+impl Behavior {
+    fn create_motion(&self) -> Motion {
+        match *self {
+            StandStillBehavior(behavior) => {
+                StandStillMotion(behavior.create_motion())
+            },
+            StraightLineBehavior(behavior) => {
+                StraightLineMotion(behavior.create_motion())
+            },
+        }    
+    }
+}
+
 #[start]
 fn start(argc: int, argv: **u8) -> int {
     // Run gui on the main thread.
@@ -16,7 +73,18 @@ fn start(argc: int, argv: **u8) -> int {
 fn main() {
     let mut screen_width = 300;
     let mut screen_height = 300;
-	
+    
+    let levels = [
+        StandStillBehavior(stand_still::Behavior {
+            pos: Pos { x: 100.0, y: 100.0 }
+        }),
+        StraightLineBehavior(straight_line::Behavior {
+            start: Pos { x: 0.0, y: 100.0 },
+            end: Pos { x: screen_width as f64, y: 100.0 },
+            vel: 5.0,
+        })
+    ];
+
     let mut window: GameWindowSDL2 = GameWindow::new(
         GameWindowSettings {
             title: "Click-Ball".to_string(),
