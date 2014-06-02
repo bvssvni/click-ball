@@ -24,6 +24,13 @@ fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, main)
 }
 
+fn pick_random(w: f64, h: f64, margin: f64) -> Pos {
+    Pos {
+        x: (w - margin * 2.0) * random() + margin,
+        y: (h - margin * 2.0) * random() + margin,
+    }
+}
+
 fn main() {
     let mut screen_width = 300;
     let mut screen_height = 300;
@@ -46,12 +53,6 @@ fn main() {
     let mut mouse_pos = Pos { x: 0.0, y: 0.0 };
 
     let random_margin = 20.0;
-    let pick_random: |f64, f64| -> (f64, f64) = |w, h| {
-        (
-            (w - random_margin * 2.0) * random() + random_margin,
-            (h - random_margin * 2.0) * random() + random_margin
-        )
-    };
     
     let game_iter_settings = GameIteratorSettings {
         updates_per_second: 120,
@@ -76,9 +77,10 @@ fn main() {
                 let d = mouse_pos - ball.pos;
                 let inside = d.len() <= ball.radius;
                 if inside {
-                    let (rx, ry) = pick_random(screen_width as f64, screen_height as f64);
-                    ball.pos.x = rx;
-                    ball.pos.y = ry;
+                    ball.pos = pick_random(
+                        screen_width as f64, 
+                        screen_height as f64,
+                        random_margin);
                 }
             },
             _ => {},
