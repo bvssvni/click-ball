@@ -7,61 +7,15 @@ use graphics::*;
 use piston::*;
 use std::rand::random;
 
-mod straight_line;
-mod stand_still;
+pub use Pos = pos::Pos;
+pub use Ball = ball::Ball;
 
-pub struct Pos {
-    x: f64,
-    y: f64,
-}
+mod pos;
+mod ball;
 
 pub struct Line {
     a: Pos,
     b: Pos,
-}
-
-/// A wrapper type for all the kinds of motion.
-pub enum Motion {
-    StandStillMotion(stand_still::Motion),
-    StraightLineMotion(straight_line::Motion),
-}
-
-impl Motion {
-    fn next(&self, dt: f64) -> Option<Motion> {
-        match *self {
-            StandStillMotion(move) => match move.next(dt) {
-                None => None,
-                Some(move) => Some(StandStillMotion(move)),
-            },
-            StraightLineMotion(move) => match move.next(dt) {
-                None => None,
-                Some(move) => Some(StraightLineMotion(move)),
-            },
-        }
-    }
-}
-
-
-pub struct StandStillMotion {
-    pos: Pos,
-}
-
-pub enum Behavior {
-    StandStillBehavior(stand_still::Behavior),
-    StraightLineBehavior(straight_line::Behavior),
-}
-
-impl Behavior {
-    fn create_motion(&self) -> Motion {
-        match *self {
-            StandStillBehavior(behavior) => {
-                StandStillMotion(behavior.create_motion())
-            },
-            StraightLineBehavior(behavior) => {
-                StraightLineMotion(behavior.create_motion())
-            },
-        }    
-    }
 }
 
 #[start]
@@ -74,17 +28,6 @@ fn main() {
     let mut screen_width = 300;
     let mut screen_height = 300;
     
-    let levels = [
-        StandStillBehavior(stand_still::Behavior {
-            pos: Pos { x: 100.0, y: 100.0 }
-        }),
-        StraightLineBehavior(straight_line::Behavior {
-            start: Pos { x: 0.0, y: 100.0 },
-            end: Pos { x: screen_width as f64, y: 100.0 },
-            vel: 5.0,
-        })
-    ];
-
     let mut window: GameWindowSDL2 = GameWindow::new(
         GameWindowSettings {
             title: "Click-Ball".to_string(),
@@ -95,12 +38,12 @@ fn main() {
         }
     );
 
-    let mut ball_x = 100.0;
-    let mut ball_y = 100.0;
-    let ball_radius = 10.0;
+    let mut ball = Ball {
+        radius: 10.0,
+        pos: Pos { x: 100.0, y: 100.0 }
+    };
 
-    let mut mouse_x = 0.0;
-    let mut mouse_y = 0.0;
+    let mut mouse_pos = Pos { x: 0.0, y: 0.0 };
 
     let random_margin = 20.0;
     let pick_random: |f64, f64| -> (f64, f64) = |w, h| {
@@ -124,19 +67,18 @@ fn main() {
                 
                 // Draw ball.
                 let c = Context::abs(args.width as f64, args.height as f64);
-                c.circle_centered(ball_x, ball_y, ball_radius).rgb(1.0, 0.0, 0.0).fill(args.gl);
+                ball.draw(&c, args.gl);
             },
             MouseMove(args) => {
-                mouse_x = args.x;
-                mouse_y = args.y;
+                mouse_pos = Pos { x: args.x, y: args.y };
             },
             MousePress(_args) => {
-                let (dx, dy) = (mouse_x - ball_x, mouse_y - ball_y);
-                let inside = (dx * dx + dy * dy) <= ball_radius * ball_radius;
+                let d = mouse_pos - ball.pos;
+                let inside = d.len() <= ball.radius;
                 if inside {
                     let (rx, ry) = pick_random(screen_width as f64, screen_height as f64);
-                    ball_x = rx;
-                    ball_y = ry;
+                    ball.pos.x = rx;
+                    ball.pos.y = ry;
                 }
             },
             _ => {},
