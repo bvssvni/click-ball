@@ -8,6 +8,13 @@ impl Pos {
     pub fn len(&self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
+
+    pub fn zero() -> Pos {
+        Pos {
+            x: 0.0,
+            y: 0.0,
+        }
+    }
 }
 
 impl Sub<Pos, Pos> for Pos {
@@ -18,3 +25,5 @@ impl Sub<Pos, Pos> for Pos {
         }
     }
 }
+
+
